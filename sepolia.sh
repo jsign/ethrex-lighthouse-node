@@ -4,6 +4,29 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_PATH="$SCRIPT_DIR/$(basename -- "${BASH_SOURCE[0]}")"
 LAUNCH_DIR="$PWD"
+
+# Per-host settings, e.g. DATA_DIR=/data/sepolia. run-all rewrites the system
+# units from the current settings, so an override passed inline is lost on the
+# next run without it; this file keeps it. The environment still wins.
+ENV_FILE="${ENV_FILE:-$SCRIPT_DIR/sepolia.env}"
+if [[ -f "$ENV_FILE" ]]; then
+  while IFS= read -r env_line || [[ -n "$env_line" ]]; do
+    [[ "$env_line" =~ ^[[:space:]]*(#|$) ]] && continue
+    if [[ ! "$env_line" =~ ^([A-Z][A-Z0-9_]*)=(.*)$ ]]; then
+      printf '[error] %s: expected KEY=value, got: %s\n' "$ENV_FILE" "$env_line" >&2
+      exit 1
+    fi
+    env_key="${BASH_REMATCH[1]}"
+    env_value="${BASH_REMATCH[2]}"
+    # Strip one pair of surrounding quotes; the value is not otherwise parsed.
+    if [[ "$env_value" =~ ^\"(.*)\"$ || "$env_value" =~ ^\'(.*)\'$ ]]; then
+      env_value="${BASH_REMATCH[1]}"
+    fi
+    [[ -v "$env_key" ]] || printf -v "$env_key" '%s' "$env_value"
+  done < "$ENV_FILE"
+  unset env_line env_key env_value
+fi
+
 WORKDIR="${WORKDIR:-$SCRIPT_DIR}"
 
 # Both clients ship Sepolia's genesis, bootnodes and fork schedule.
@@ -87,7 +110,11 @@ Usage:
   ./$script_name uninstall-units
   ./$script_name paths
 
+Settings come from the environment, then from KEY=value lines in sepolia.env
+next to this script, then from the defaults below.
+
 Main environment overrides:
+  ENV_FILE                   Settings file to read (defaults to sepolia.env next to this script)
   WORKDIR                    Base directory for secrets, data, logs and cloned repos
   DATA_DIR                   Base directory for chain data (defaults to WORKDIR/data)
   SRC_DIR                    Base directory for source checkouts (defaults to WORKDIR/src)
@@ -895,6 +922,7 @@ clean() {
 }
 
 print_paths() {
+  [[ -f "$ENV_FILE" ]] && printf 'ENV_FILE=%s\n' "$ENV_FILE"
   cat <<EOF
 WORKDIR=$WORKDIR
 SECRETS_DIR=$SECRETS_DIR

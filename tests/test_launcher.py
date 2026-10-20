@@ -75,13 +75,16 @@ class LauncherTests(unittest.TestCase):
         self.executable(self.bin / "sudo", SUDO_STUB)
         self.unit_dir = self.root / "system units"
         self.unit_dir.mkdir()
-        # Avoid inherited overrides pointing tests at a real installation.
+        self.env_file = self.root / "sepolia.env"
+        # Avoid inherited overrides, or a sepolia.env in the checkout, pointing
+        # tests at a real installation.
         self.env = {
             "PATH": f"{self.bin}:/usr/bin:/bin",
             "HOME": str(self.root),
             "WORKDIR": str(self.work),
             "TEST_ROOT": str(self.root),
             "SYSTEMD_UNIT_DIR": str(self.unit_dir),
+            "ENV_FILE": str(self.env_file),
         }
 
     def executable(self, path, body=STUB):
@@ -317,6 +320,33 @@ port_is_open() {
             ["daemon-reload"],
             ["enable", "sepolia-ethrex.service", "sepolia-lighthouse.service"],
         ])
+
+    def test_env_file_settings_reach_units_and_yield_to_environment(self):
+        self.fake_clients()
+        data = self.root / "file data"
+        # The last line has no trailing newline.
+        self.env_file.write_text(f"# chain data\n\nDATA_DIR={data}\nLIGHTHOUSE_HTTP_PORT='6052'")
+        paths = self.run_shell("print_paths").stdout.splitlines()
+        self.assertIn(f"ENV_FILE={self.env_file}", paths)
+        self.assertIn(f"DATA_DIR={data}", paths)
+        self.run_shell("install_units")
+        ethrex = (self.unit_dir / "sepolia-ethrex.service").read_text().splitlines()
+        for expected in (
+            f'Environment="DATA_DIR={data}"',
+            f'Environment="ETHREX_DATADIR={data}/ethrex"',
+            'Environment="LIGHTHOUSE_HTTP_PORT=6052"',
+        ):
+            self.assertIn(expected, ethrex)
+        inline = self.root / "inline data"
+        paths = self.run_shell("print_paths", DATA_DIR=str(inline)).stdout.splitlines()
+        self.assertIn(f"DATA_DIR={inline}", paths)
+
+    def test_env_file_rejects_unparsed_lines(self):
+        self.env_file.write_text("export DATA_DIR=/elsewhere\n")
+        result = self.run_shell("print_paths", success=False)
+        self.assertIn("expected KEY=value, got: export DATA_DIR=/elsewhere", result.stderr)
+        self.env_file.unlink()
+        self.assertNotIn("ENV_FILE=", self.run_shell("print_paths").stdout)
 
     def test_installed_units_drive_run_status_and_stop(self):
         self.fake_clients()

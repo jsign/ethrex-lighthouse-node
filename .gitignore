@@ -12,3 +12,6 @@ src/
 
 # Python launcher test cache
 __pycache__/
+
+# Per-host launcher settings
+sepolia.env

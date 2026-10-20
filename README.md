@@ -43,12 +43,15 @@ large disk:
 ```bash
 ./sepolia.sh clone
 ./sepolia.sh build
-DATA_DIR=/fast/sepolia ./sepolia.sh run-all
+echo 'DATA_DIR=/fast/sepolia' > sepolia.env
+./sepolia.sh run-all
 ```
 
-Pass the same `DATA_DIR` to every `run-all`, `run-el`, `run-cl`, and `clean`;
-without it, chain data goes to `./data`. Ethrex stores its database in a
-`sepolia` subdirectory of its data directory.
+Every command reads `sepolia.env`, so `run-all`, `run-el`, `run-cl`,
+`install-units`, and `clean` all use the same chain data. Without `DATA_DIR`,
+chain data goes to `./data`. Ethrex stores its database in a `sepolia`
+subdirectory of its data directory. See [Configuration](#configuration) for the
+file's format.
 
 `run-all` creates or reuses the shared Engine API JWT secret and starts Ethrex
 and Lighthouse as separate systemd user services. Lighthouse uses checkpoint
@@ -97,13 +100,12 @@ their memory use. No memory ceiling or swap is configured by this launcher.
 ## Start on boot
 
 On a dedicated host, install the clients as boot-enabled systemd system units.
-This needs `sudo`. Stop any transient services first, then install with the
-same settings you pass to `run-all`:
+This needs `sudo`. Stop any transient services first, then install:
 
 ```bash
-DATA_DIR=/fast/sepolia ./sepolia.sh stop
-DATA_DIR=/fast/sepolia ./sepolia.sh install-units
-DATA_DIR=/fast/sepolia ./sepolia.sh run-all
+./sepolia.sh stop
+./sepolia.sh install-units
+./sepolia.sh run-all
 ```
 
 `install-units` writes `sepolia-ethrex.service` and `sepolia-lighthouse.service`
@@ -112,8 +114,10 @@ start Lighthouse after Ethrex, and give Ethrex five minutes to shut down cleanly
 
 Once the units exist, `run-all`, `status`, `stop`, and `clean` manage them
 instead of transient units. `run-all` rewrites the unit files first, so new
-settings and defaults take effect, just as with transient units. `stop` does not
-disable boot start. Lifecycle events go to the system journal:
+settings and defaults take effect, just as with transient units. Keep per-host
+settings such as `DATA_DIR` in `sepolia.env`: a setting passed inline lasts only
+until the next `run-all` without it. `stop` does not disable boot start.
+Lifecycle events go to the system journal:
 
 ```bash
 journalctl -u sepolia-ethrex.service
@@ -131,15 +135,14 @@ To return to transient units, stop and remove the system units:
 Stop both services and restart with clean runtime data:
 
 ```bash
-DATA_DIR=/fast/sepolia ./sepolia.sh run-all --clean
+./sepolia.sh run-all --clean
 ```
 
 `run-all --clean` deletes both clients' chain data, the JWT secret, logs, and
 PID files from the configured runtime directories. It preserves source
 checkouts under `./src` and generates a new shared JWT.
 
-To remove runtime data without restarting, use `./sepolia.sh clean` with the
-same `DATA_DIR`.
+To remove runtime data without restarting, use `./sepolia.sh clean`.
 
 ## Run in the foreground
 
@@ -147,11 +150,25 @@ Run each command in a separate terminal. These processes run without systemd
 supervision; stop them with Ctrl+C:
 
 ```bash
-DATA_DIR=/fast/sepolia ./sepolia.sh run-el
-DATA_DIR=/fast/sepolia ./sepolia.sh run-cl
+./sepolia.sh run-el
+./sepolia.sh run-cl
 ```
 
 ## Configuration
+
+Put per-host settings in `sepolia.env` next to the script, one `KEY=value` per
+line:
+
+```bash
+# Chain data on the large disk
+DATA_DIR=/data/sepolia
+```
+
+Blank lines and lines starting with `#` are skipped, and one pair of surrounding
+quotes is removed from a value. The launcher stops on any other line, such as
+`export DATA_DIR=...`. A variable set in the environment overrides the file, and
+the file overrides the defaults. `./sepolia.sh paths` shows the file it read and
+the paths that result. Git ignores `sepolia.env`.
 
 Use different source checkouts explicitly:
 
@@ -165,8 +182,9 @@ LIGHTHOUSE_SRC=/path/to/lighthouse \
 ./sepolia.sh run-all
 ```
 
-Available environment overrides:
+Available settings, in `sepolia.env` or the environment:
 
+- `ENV_FILE`: settings file to read (`./sepolia.env` by default; environment only)
 - `DATA_DIR`: base directory for chain data (`./data` by default)
 - `ETHREX_SRC`: existing ethrex checkout to use instead of `./src/ethrex`
 - `LIGHTHOUSE_SRC`: existing Lighthouse checkout to use instead of `./src/lighthouse`
