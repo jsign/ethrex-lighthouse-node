@@ -130,6 +130,37 @@ To return to transient units, stop and remove the system units:
 ./sepolia.sh uninstall-units
 ```
 
+## Upgrade a client
+
+The launcher's defaults pin each client's release. When they move to a new
+Ethrex or Lighthouse release, pull the launcher, then check out and build that
+release. Both clients keep running during the build, and each keeps using its
+old binary until it restarts.
+
+```bash
+git pull --ff-only
+./sepolia.sh clone
+./sepolia.sh build
+```
+
+With system units installed, refresh the unit files and restart only the client
+you upgraded, here Lighthouse:
+
+```bash
+./sepolia.sh install-units
+sudo systemctl restart sepolia-lighthouse.service
+```
+
+`install-units` rewrites the unit files from the current settings, such as a
+new `LIGHTHOUSE_REF`, without stopping either client. For an Ethrex upgrade,
+restart `sepolia-ethrex.service` instead. `stop` followed by `run-all` also
+works, but it restarts both clients, and Ethrex can take up to five minutes to
+shut down. With transient units, skip `install-units`, since it would install
+system units, and run `stop` followed by `run-all`.
+
+`build` runs one compile job per CPU core. On a host with little free memory,
+set `CARGO_BUILD_JOBS=4` so the build leaves room for the running clients.
+
 ## Start fresh
 
 Stop both services and restart with clean runtime data:
