@@ -173,7 +173,7 @@ port_is_open() {
         calls = self.calls("git")
         self.assertIn(["clone", "https://github.com/sigp/lighthouse.git", str(self.work / "src/lighthouse")], [c[1] for c in calls])
         self.assertIn(["-C", str(self.work / "src/ethrex"), "checkout", "v30.0.0"], [c[1] for c in calls])
-        self.assertIn(["-C", str(self.work / "src/lighthouse"), "checkout", "v8.3.0"], [c[1] for c in calls])
+        self.assertIn(["-C", str(self.work / "src/lighthouse"), "checkout", "v8.3.1"], [c[1] for c in calls])
         self.fake_clients()
         self.run_shell("build_all")
         # Each build runs inside its checkout so rust-toolchain.toml applies.

@@ -45,7 +45,7 @@ ETHREX_GIT_URL="${ETHREX_GIT_URL:-https://github.com/lambdaclass/ethrex.git}"
 LIGHTHOUSE_GIT_URL="${LIGHTHOUSE_GIT_URL:-https://github.com/sigp/lighthouse.git}"
 # Glamsterdam-ready releases for Sepolia (activation 2026-10-06 13:53:36 UTC).
 ETHREX_REF="${ETHREX_REF:-v30.0.0}"
-LIGHTHOUSE_REF="${LIGHTHOUSE_REF:-v8.3.0}"
+LIGHTHOUSE_REF="${LIGHTHOUSE_REF:-v8.3.1}"
 
 ETHREX_SRC="${ETHREX_SRC:-$SRC_DIR/ethrex}"
 LIGHTHOUSE_SRC="${LIGHTHOUSE_SRC:-$SRC_DIR/lighthouse}"
@@ -123,7 +123,7 @@ Main environment overrides:
   ETHREX_GIT_URL             ethrex clone URL when ETHREX_SRC does not already exist
   LIGHTHOUSE_GIT_URL         Lighthouse clone URL when LIGHTHOUSE_SRC does not already exist
   ETHREX_REF                 Git ref to checkout in ETHREX_SRC (defaults to v30.0.0)
-  LIGHTHOUSE_REF             Git ref to checkout in LIGHTHOUSE_SRC (defaults to v8.3.0)
+  LIGHTHOUSE_REF             Git ref to checkout in LIGHTHOUSE_SRC (defaults to v8.3.1)
   ETHREX_BIN                 Explicit ethrex binary path
   LIGHTHOUSE_BIN             Explicit Lighthouse binary path
   LIGHTHOUSE_DATADIR         Lighthouse database directory (defaults to DATA_DIR/lighthouse)
