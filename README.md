@@ -161,6 +161,10 @@ system units, and run `stop` followed by `run-all`.
 `build` runs one compile job per CPU core. On a host with little free memory,
 set `CARGO_BUILD_JOBS=4` so the build leaves room for the running clients.
 
+A command passed straight to `ssh` runs in a shell that skips rustup's `PATH`
+setup in `~/.profile` and `~/.bashrc`. Run `. ~/.cargo/env` first there, or
+`build` stops with `missing required command: cargo`.
+
 ## Start fresh
 
 Stop both services and restart with clean runtime data:
